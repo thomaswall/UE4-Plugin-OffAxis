@@ -71,6 +71,8 @@ static float s_ProjectionPlaneOffset = 0.f;
 static FVector s_EyePosition;
 static float s_Width = 0.f;
 static float s_Height = 0.f;
+static float s_ShowDebugMessages = false;
+static bool s_bUseoffAxis = true;
 /**
 * UI Stats
 */
@@ -215,12 +217,6 @@ static FMatrix GenerateOffAxisMatrix_Internal(float _screenWidth, float _screenH
 		const FVector pb(width / 2.0f, -height / 2.0f, n);
 		const FVector pc(-width / 2.0f, height / 2.0f, n);
 		const FVector pe(eyePosition.X, eyePosition.Y, eyePosition.Z);
-
-// 		//GEngine->AddOnScreenDebugMessage(11, 2, FColor::Red, FString::Printf(TEXT("pa: %s"), *pa.ToString()));
-// 		//GEngine->AddOnScreenDebugMessage(12, 2, FColor::Red, FString::Printf(TEXT("pb: %s"), *pb.ToString()));
-// 		//GEngine->AddOnScreenDebugMessage(13, 2, FColor::Red, FString::Printf(TEXT("pc: %s"), *pc.ToString()));
-// 		//GEngine->AddOnScreenDebugMessage(14, 2, FColor::Red, FString::Printf(TEXT("pe: %s"), *pe.ToString()));
-
 		// Compute the screen corner vectors.
 		FVector va, vb, vc; 
 		va = pa - pe;
@@ -238,10 +234,8 @@ static FMatrix GenerateOffAxisMatrix_Internal(float _screenWidth, float _screenH
 		
 		// Find the distance from the eye to screen plane.
 		float d = -FVector::DotProduct(va, vn);
-		//GEngine->AddOnScreenDebugMessage(10, 2, FColor::Red, FString::Printf(TEXT("Eye-Screen-Distance: %f"), d));
-
+	
 		nd = n / d;
-		//GEngine->AddOnScreenDebugMessage(20, 4, FColor::Red, FString::Printf(TEXT("nd: %f"), nd));
 		
 		// Find the extent of the perpendicular projection.
 		l = FVector::DotProduct(vr, va) * nd;
@@ -249,14 +243,8 @@ static FMatrix GenerateOffAxisMatrix_Internal(float _screenWidth, float _screenH
 		b = FVector::DotProduct(vu, va) * nd;
 		t = FVector::DotProduct(vu, vc) * nd;
 
-		//GEngine->AddOnScreenDebugMessage(30, 4, FColor::Red, FString::Printf(TEXT("Frustum: %f \t %f \t %f \t %f \t %f \t %f \t "), l,r,b,t,n,f));
-
-
 		// Load the perpendicular projection.
 		result = FrustumMatrix(l, r, b, t, n, f);
-		//GEngine->AddOnScreenDebugMessage(40, 2, FColor::Red, FString::Printf(TEXT("FrustumMatrix_ORIG: %s"), *result.ToString()));
-
-
 
 		// Rotate the projection to be non-perpendicular. 
 		// This is currently unused until the screen is used.
@@ -267,6 +255,20 @@ static FMatrix GenerateOffAxisMatrix_Internal(float _screenWidth, float _screenH
 		M.M[2][0] = vn.X; M.M[2][1] = vn.Y; M.M[2][2] = vn.Z;
 		M.M[3][3] = 1.0f;
 		result = result * M;
+
+		if (s_ShowDebugMessages)
+		{
+			GEngine->AddOnScreenDebugMessage(10, 2, FColor::Red, FString::Printf(TEXT("pa: %s"), *pa.ToString()));
+			GEngine->AddOnScreenDebugMessage(20, 2, FColor::Red, FString::Printf(TEXT("pb: %s"), *pb.ToString()));
+			GEngine->AddOnScreenDebugMessage(30, 2, FColor::Red, FString::Printf(TEXT("pc: %s"), *pc.ToString()));
+			GEngine->AddOnScreenDebugMessage(40, 2, FColor::Red, FString::Printf(TEXT("pe: %s"), *pe.ToString()));
+			GEngine->AddOnScreenDebugMessage(50, 2, FColor::Red, FString::Printf(TEXT("vr: %s"), *vu.ToString()));
+			GEngine->AddOnScreenDebugMessage(60, 2, FColor::Red, FString::Printf(TEXT("vu: %s"), *vr.ToString()));
+			GEngine->AddOnScreenDebugMessage(70, 2, FColor::Red, FString::Printf(TEXT("vn: %s"), *vn.ToString()));
+			GEngine->AddOnScreenDebugMessage(80, 4, FColor::Red, FString::Printf(TEXT("Frustum: %f \t %f \t %f \t %f \t %f \t %f \t "), l, r, b, t, n, f));
+			GEngine->AddOnScreenDebugMessage(90, 2, FColor::Red, FString::Printf(TEXT("Eye-Screen-Distance: %f"), d));
+			GEngine->AddOnScreenDebugMessage(100, 4, FColor::Red, FString::Printf(TEXT("nd: %f"), nd));
+		}
 	}	
 	
 	// Move the apex of the frustum to the origin.
@@ -381,6 +383,16 @@ void UOffAxisGameViewportClient::ResetEyeOffsetForStereo(float _newVal)
 	s_EyeOffsetVal = _newVal;
 }
 
+void UOffAxisGameViewportClient::UpdateShowDebugMessages(bool _newVal)
+{
+	s_ShowDebugMessages = _newVal;
+}
+
+void UOffAxisGameViewportClient::UseOffAxis(bool _newVal)
+{
+	s_bUseoffAxis = _newVal;
+}
+
 static FMatrix _AdjustProjectionMatrixForRHI(const FMatrix& InProjectionMatrix)
 {
 	const float GMinClipZ = GNearClippingPlane;
@@ -411,7 +423,7 @@ static void UpdateProjectionMatrix(FSceneView* View, FMatrix OffAxisMatrix, ESte
 		break;
 	}
 	
-	FMatrix axisChanger; //rotates everything.
+	FMatrix axisChanger; //rotates everything to UE4 coordinate system.
 
 	axisChanger.SetIdentity();
 	axisChanger.M[0][0] = 0.0f;
@@ -424,8 +436,32 @@ static void UpdateProjectionMatrix(FSceneView* View, FMatrix OffAxisMatrix, ESte
 
 	View->ProjectionMatrixUnadjustedForRHI = View->ViewMatrices.GetViewMatrix().Inverse() * axisChanger * stereoProjectionMatrix;
 
+	//////////////////////////////////////////////////////////////////////////
+	FMatrix* pInvViewMatrix = (FMatrix*)(&View->ViewMatrices.GetInvViewMatrix());
+	*pInvViewMatrix = View->ViewMatrices.GetViewMatrix().Inverse();
+	FVector* pPreViewTranslation = (FVector*)(&View->ViewMatrices.GetPreViewTranslation());
+	*pPreViewTranslation = -View->ViewMatrices.GetViewOrigin();
+	//////////////////////////////////////////////////////////////////////////
+
 	FMatrix* pProjectionMatrix = (FMatrix*)(&View->ViewMatrices.GetProjectionMatrix());
 	*pProjectionMatrix = _AdjustProjectionMatrixForRHI(View->ProjectionMatrixUnadjustedForRHI);
+
+	//////////////////////////////////////////////////////////////////////////
+
+	FMatrix TranslatedViewMatrix = FTranslationMatrix(-View->ViewMatrices.GetPreViewTranslation()) * View->ViewMatrices.GetViewMatrix();
+	FMatrix* pTranslatedViewProjectionMatrix = (FMatrix*)(&View->ViewMatrices.GetTranslatedViewProjectionMatrix());
+	*pTranslatedViewProjectionMatrix = TranslatedViewMatrix * View->ViewMatrices.GetProjectionMatrix();
+
+	FMatrix* pInvTranslatedViewProjectionMatrixx = (FMatrix*)(&View->ViewMatrices.GetInvTranslatedViewProjectionMatrix());
+	*pInvTranslatedViewProjectionMatrixx = View->ViewMatrices.GetTranslatedViewProjectionMatrix().Inverse();
+
+	View->ShadowViewMatrices = View->ViewMatrices;
+
+	GetViewFrustumBounds(View->ViewFrustum, View->ViewMatrices.GetViewProjectionMatrix(), false);
+
+
+
+	//////////////////////////////////////////////////////////////////////////
 }
 
 void UOffAxisGameViewportClient::Draw(FViewport* InViewport, FCanvas* SceneCanvas)
@@ -558,25 +594,29 @@ void UOffAxisGameViewportClient::Draw(FViewport* InViewport, FCanvas* SceneCanva
 				FVector		ViewLocation;
 				FRotator	ViewRotation;
 
-				//EStereoscopicPass PassType = !bStereoRendering ? eSSP_FULL : ((i == 0) ? eSSP_LEFT_EYE : eSSP_RIGHT_EYE);
-				EStereoscopicPass PassType = bStereoRendering ? GEngine->StereoRenderingDevice->GetViewPassForIndex(bStereoRendering, i) : eSSP_FULL; //4.19
+				EStereoscopicPass PassType = !bStereoRendering ? eSSP_FULL : ((i == 0) ? eSSP_LEFT_EYE : eSSP_RIGHT_EYE);
+				//EStereoscopicPass PassType = bStereoRendering ? GEngine->StereoRenderingDevice->GetViewPassForIndex(bStereoRendering, i) : eSSP_FULL; //4.19
 
 				FSceneView* View = LocalPlayer->CalcSceneView(&ViewFamily, ViewLocation, ViewRotation, InViewport, &GameViewDrawer, PassType);
 
 				/************************************************************************/
 				/* OFF-AXIS-MAGIC                                                       */
 				/************************************************************************/
-				//if (mOffAxisMatrixSetted)
-				//	UpdateProjectionMatrix(View, mOffAxisMatrix, PassType);
+				if (s_bUseoffAxis)
+				{
+					SetOffAxisMatrix(GenerateOffAxisMatrix(s_Width, s_Height, s_EyePosition, PassType));
+					UpdateProjectionMatrix(View, mOffAxisMatrix, PassType);
+				}
+
 				/************************************************************************/
 				/* OFF-AXIS-MAGIC                                                       */
 				/************************************************************************/
 
-				SetOffAxisMatrix(GenerateOffAxisMatrix(s_Width, s_Height, s_EyePosition, PassType));
-				UpdateProjectionMatrix(View, mOffAxisMatrix, PassType);
 
 				if (View)
 				{
+					Views.Add(View);
+
 					if (View->Family->EngineShowFlags.Wireframe)
 					{
 						// Wireframe color is emissive-only, and mesh-modifying materials do not use material substitution, hence...
@@ -675,7 +715,7 @@ void UOffAxisGameViewportClient::Draw(FViewport* InViewport, FCanvas* SceneCanva
 
 					// Add view information for resource streaming.
 					const float StreamingScale = 1.f / FMath::Clamp<float>(View->LODDistanceFactor, .2f, 1.f); //4.19
-					//IStreamingManager::Get().AddViewInformation(View->ViewMatrices.GetViewOrigin(), View->ViewRect.Width(), View->ViewRect.Width() * View->ViewMatrices.GetProjectionMatrix().M[0][0]);
+																											   //IStreamingManager::Get().AddViewInformation(View->ViewMatrices.GetViewOrigin(), View->ViewRect.Width(), View->ViewRect.Width() * View->ViewMatrices.GetProjectionMatrix().M[0][0]);
 					IStreamingManager::Get().AddViewInformation(View->ViewMatrices.GetViewOrigin(), View->UnscaledViewRect.Width(), View->UnscaledViewRect.Width() * View->ViewMatrices.GetProjectionMatrix().M[0][0], StreamingScale);
 
 					MyWorld->ViewLocationsRenderedLastFrame.Add(View->ViewMatrices.GetViewOrigin());
@@ -835,7 +875,7 @@ void UOffAxisGameViewportClient::Draw(FViewport* InViewport, FCanvas* SceneCanva
 	GEngine->EmitDynamicResolutionEvent(EDynamicResolutionStateEvent::EndDynamicResolutionRendering); //4.19
 
 
-	// Clear areas of the rendertarget (backbuffer) that aren't drawn over by the views.
+																									  // Clear areas of the rendertarget (backbuffer) that aren't drawn over by the views.
 	if (!bBufferCleared)
 	{
 		// clear left
@@ -956,12 +996,12 @@ void UOffAxisGameViewportClient::Draw(FViewport* InViewport, FCanvas* SceneCanva
 
 		//ensure canvas has been flushed before rendering UI
 		SceneCanvas->Flush_GameThread();
-	
+
 		//4.19
 		/*
 		if (DebugCanvas != NULL)
 		{
-			DebugCanvas->Flush_GameThread();
+		DebugCanvas->Flush_GameThread();
 		}
 		*/
 
@@ -1018,5 +1058,3 @@ void UOffAxisGameViewportClient::Draw(FViewport* InViewport, FCanvas* SceneCanva
 	}
 	//EndDrawDelegate.Broadcast();
 }
-
-
