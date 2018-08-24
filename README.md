@@ -43,17 +43,29 @@ Ok, here's the catch. The cube of the OffAxisActor do not specifiy the extents o
 ##Input Mappings
 Restart after updating DefaultInput.ini!
 
-+ActionMappings=(ActionName="HomePosReset",Key=End,bShift=False,bCtrl=False,bAlt=False,bCmd=False)
-+ActionMappings=(ActionName="ToggleOffAxisMethod",Key=SpaceBar,bShift=False,bCtrl=False,bAlt=False,bCmd=False)
-+ActionMappings=(ActionName="ResetEyeOffset",Key=Three,bShift=False,bCtrl=False,bAlt=False,bCmd=False)
-+AxisMappings=(AxisName="Up",Key=Up,Scale=1.000000)
-+AxisMappings=(AxisName="Up",Key=Down,Scale=-1.000000)
-+AxisMappings=(AxisName="Left",Key=Left,Scale=-1.000000)
-+AxisMappings=(AxisName="Left",Key=Right,Scale=1.000000)
-+AxisMappings=(AxisName="Forward",Key=PageUp,Scale=1.000000)
-+AxisMappings=(AxisName="Forward",Key=PageDown,Scale=-1.000000)
-+AxisMappings=(AxisName="ChangeEyeOffset",Key=One,Scale=0.100000)
-+AxisMappings=(AxisName="ChangeEyeOffset",Key=Two,Scale=-0.100000)
+ActionMappings=(ActionName="HomePosReset",Key=End,bShift=False,bCtrl=False,bAlt=False,bCmd=False)
+ActionMappings=(ActionName="ToggleOffAxisMethod",Key=SpaceBar,bShift=False,bCtrl=False,bAlt=False,bCmd=False)
+ActionMappings=(ActionName="ResetEyeOffset",Key=Three,bShift=False,bCtrl=False,bAlt=False,bCmd=False)
+ActionMappings=(ActionName="StartOptitrack",Key=Four,bShift=False,bCtrl=False,bAlt=False,bCmd=False)
+ActionMappings=(ActionName="UseOptitrack",Key=O,bShift=False,bCtrl=False,bAlt=False,bCmd=False)
+ActionMappings=(ActionName="Show Log Messages",Key=M,bShift=False,bCtrl=False,bAlt=False,bCmd=False)
+ActionMappings=(ActionName="Toggle Use OffAxis",Key=N,bShift=False,bCtrl=False,bAlt=False,bCmd=False)
+AxisMappings=(AxisName="Up",Key=Up,Scale=1.500000)
+AxisMappings=(AxisName="Up",Key=Down,Scale=-1.500000)
+AxisMappings=(AxisName="Left",Key=Left,Scale=-1.500000)
+AxisMappings=(AxisName="Left",Key=Right,Scale=1.500000)
+AxisMappings=(AxisName="Forward",Key=PageUp,Scale=1.000000)
+AxisMappings=(AxisName="Forward",Key=PageDown,Scale=-1.000000)
+AxisMappings=(AxisName="ChangeEyeOffset",Key=One,Scale=0.100000)
+AxisMappings=(AxisName="ChangeEyeOffset",Key=Two,Scale=-0.100000)
+AxisMappings=(AxisName="TmpZUp",Key=W,Scale=0.500000)
+AxisMappings=(AxisName="TmpZUp",Key=S,Scale=-0.500000)
+AxisMappings=(AxisName="Forward",Key=NumPadEight,Scale=0.100000)
+AxisMappings=(AxisName="Forward",Key=NumPadTwo,Scale=-0.100000)
+ConsoleKey=None
+ConsoleKeys=Tilde
+ConsoleKeys=Caret
+ConsoleKeys=F12
 
 ## Tips
 * Show > Advanced > Camera Frustums
