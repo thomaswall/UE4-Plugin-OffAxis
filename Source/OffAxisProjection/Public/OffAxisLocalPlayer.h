@@ -14,22 +14,20 @@ class OFFAXISPROJECTION_API UOffAxisLocalPlayer : public ULocalPlayer
 {
 	GENERATED_BODY()
 
-		/**
-	 * Calculate the view settings for drawing from this view actor
-	 *
-	 * @param	View - output view struct
-	 * @param	OutViewLocation - output actor location
-	 * @param	OutViewRotation - output actor rotation
-	 * @param	Viewport - current client viewport
-	 * @param	ViewDrawer - optional drawing in the view
-	 * @param	StereoPass - whether we are drawing the full viewport, or a stereo left / right pass
-	 */
-		virtual FSceneView* CalcSceneView(class FSceneViewFamily* ViewFamily,
+public:
+	virtual FSceneView* CalcSceneView(class FSceneViewFamily* ViewFamily,
 			FVector& OutViewLocation,
 			FRotator& OutViewRotation,
 			FViewport* Viewport,
 			class FViewElementDrawer* ViewDrawer = NULL,
 			EStereoscopicPass StereoPass = eSSP_FULL) override;
-	
-	
+
+protected:
+	FMatrix CalculateOffAxisMatrix(FVector _eyeRelativePositon, float _screenWidth, float _screenHeight);
+	FMatrix FrustumMatrix(float left, float right, float bottom, float top, float nearVal, float farVal);
+
+private:
+
+	bool bShowDebugMessages = false;
+	bool bOffAxisVersion = false;
 };
